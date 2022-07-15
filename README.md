@@ -1,3 +1,6 @@
+Comments on the following code in the ipython notebook to aid understanding
+
+
 # Energy-based GFlowNets
 
 Code for our ICML 2022 paper [Generative Flow Networks for Discrete Probabilistic Modeling](https://arxiv.org/abs/2202.01361) 
