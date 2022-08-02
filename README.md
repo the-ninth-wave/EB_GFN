@@ -1,3 +1,5 @@
+( From Nick Woodall's github )
+
 Comments on the following code in the ipython notebook to aid understanding
 
 
