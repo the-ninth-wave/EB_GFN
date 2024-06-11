@@ -222,10 +222,7 @@ def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step):
     bond_index = step
     horizontal_bonds, vertical_bonds = bond_snapshots[bond_index]
     
-    if step % 2 == 0: 
-        alpha = 1.0
-    else:  
-        alpha = 0.3
+    alpha = 1.0 if step % 2 == 0 else 0.3
     
     # Plot bonds
     segments = []
@@ -244,7 +241,7 @@ def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step):
     spins = lattice.flatten()
     
     colors = np.where(spins == 1, 'black', 'white')
-    ax.scatter(x, y, c=colors, s=100, edgecolors='k', zorder=2)  # s is the size of the discs, zorder ensures it's on top
+    ax.scatter(x, y, c=colors, s=300 / np.sqrt{N}, edgecolors='k', zorder=2) 
     
     ax.set_xlim(-0.5, N + .5)
     ax.set_ylim(-0.5, N + .5)
