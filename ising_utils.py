@@ -147,21 +147,27 @@ def update_bonds(lattice, beta):
     N = lattice.shape[0]
     uf = UnionFind(N * N)
     
-    horizontal_bonds = np.zeros((N, N), dtype=bool)
-    vertical_bonds = np.zeros((N, N), dtype=bool)
+    # Adjust shapes to accommodate bonds that extend outside the box
+    horizontal_bonds = np.zeros((N, N + 1), dtype=bool)
+    vertical_bonds = np.zeros((N + 1, N), dtype=bool)
     
     for i in range(N):
         for j in range(N):
-            # Only create a vertical bond if the spins are the same and we are within bounds
-            if i < N - 1 and lattice[i, j] == lattice[(i + 1) % N, j] and np.random.rand() < 1 - np.exp(-2 * beta):
+            # Only create a vertical bond if the spins are the same
+            if lattice[i, j] == lattice[(i + 1) % N, j] and np.random.rand() < 1 - np.exp(-2 * beta):
                 uf.union(i * N + j, ((i + 1) % N) * N + j)
                 vertical_bonds[i, j] = True
-            # Only create a horizontal bond if the spins are the same and we are within bounds
-            if j < N - 1 and lattice[i, j] == lattice[i, (j + 1) % N] and np.random.rand() < 1 - np.exp(-2 * beta):
+                if i == N - 1:  # Wrap-around bond at the top edge
+                    vertical_bonds[N, j] = True
+            # Only create a horizontal bond if the spins are the same
+            if lattice[i, j] == lattice[i, (j + 1) % N] and np.random.rand() < 1 - np.exp(-2 * beta):
                 uf.union(i * N + j, i * N + (j + 1) % N)
                 horizontal_bonds[i, j] = True
+                if j == N - 1:  # Wrap-around bond at the right edge
+                    horizontal_bonds[i, N] = True
 
     return uf, horizontal_bonds, vertical_bonds
+
 
 def update_spins(lattice, uf):
     N = lattice.shape[0]
@@ -180,14 +186,17 @@ def update_spins(lattice, uf):
                 lattice[i, j] *= -1
 
 def simulate_swendsen_wang_interactive(lattice, beta, steps):
+    N = lattice.shape[0]
 
-    # each of the snapshot lists should have one element before the for-loop
-    lattice_snapshots = [lattice.copy()]
+    # each of the snapshot lists should have the same number of elements before the for-loop
+    #lattice_snapshots = [lattice.copy()]
+    lattice_snapshots = []
     bond_snapshots = []
     
     # Initialize bonds before the loop
-    horizontal_bonds, vertical_bonds = np.zeros(lattice.shape, dtype=bool), np.zeros(lattice.shape, dtype=bool)
-    bond_snapshots.append((horizontal_bonds.copy(), vertical_bonds.copy())) # Snapshot before bond update
+    horizontal_bonds = np.zeros((N, N + 1), dtype=bool)
+    vertical_bonds = np.zeros((N + 1, N), dtype=bool)
+    # bond_snapshots.append((horizontal_bonds.copy(), vertical_bonds.copy())) # Snapshot before bond update
 
     
     for step in range(steps):
@@ -209,24 +218,23 @@ def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step):
     
     fig, ax = plt.subplots()
     ax.set_title(f"Step {step}")
+
+    bond_index = step
+    horizontal_bonds, vertical_bonds = bond_snapshots[bond_index]
     
-    if step % 2 == 0:  # Plot bonds after bond update steps (1 and 2 mod 4)
-        bond_index = (step - 1) 
-        horizontal_bonds, vertical_bonds = bond_snapshots[bond_index]
-        alpha = 0.3 
-    else:  # Plot bonds on bond update steps and before bond update steps (0 and 3 mod 4)
-        bond_index = step 
-        horizontal_bonds, vertical_bonds = bond_snapshots[bond_index]
+    if step % 2 == 0: 
         alpha = 1.0
+    else:  
+        alpha = 0.3
     
     # Plot bonds
     segments = []
     for i in range(N):
         for j in range(N):
             if horizontal_bonds[i, j]:
-                segments.append(((j, i), ((j + 1) % N, i)))
+                segments.append(((j, i), ((j + 1), i)))
             if vertical_bonds[i, j]:
-                segments.append(((j, i), (j, (i + 1) % N)))
+                segments.append(((j, i), (j, (i + 1))))
     bond_lines = LineCollection(segments, colors='red', alpha=alpha, zorder=1)
     ax.add_collection(bond_lines)
     
@@ -238,8 +246,8 @@ def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step):
     colors = np.where(spins == 1, 'black', 'white')
     ax.scatter(x, y, c=colors, s=100, edgecolors='k', zorder=2)  # s is the size of the discs, zorder ensures it's on top
     
-    ax.set_xlim(-0.5, N - 0.5)
-    ax.set_ylim(-0.5, N - 0.5)
+    ax.set_xlim(-0.5, N + .5)
+    ax.set_ylim(-0.5, N + .5)
     ax.set_aspect('equal')
     plt.gca().invert_yaxis()  # Invert y-axis to match the imshow orientation
     plt.show()
