@@ -241,7 +241,7 @@ def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step):
     spins = lattice.flatten()
     
     colors = np.where(spins == 1, 'black', 'white')
-    ax.scatter(x, y, c=colors, s=300 / np.sqrt{N}, edgecolors='k', zorder=2) 
+    ax.scatter(x, y, c=colors, s=(300 / np.sqrt(N)), edgecolors='k', zorder=2) 
     
     ax.set_xlim(-0.5, N + .5)
     ax.set_ylim(-0.5, N + .5)
