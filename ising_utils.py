@@ -24,11 +24,22 @@ def metropolis_acceptance(delta_E, T):
 
 
 def glauber_step(lattice, beta):
-    """Perform one step of the Glauber dynamics."""
+    """
+    Perform one step of the Glauber dynamics 
+    (non-periodic boundary conditions)
+    """
     N = lattice.shape[0]
     i, j = np.random.randint(0, N, size=2)
     spin = lattice[i, j]
-    neighbors = lattice[(i+1)%N, j] + lattice[(i-1)%N, j] + lattice[i, (j+1)%N] + lattice[i, (j-1)%N]
+    neighbors = 0
+    if i > 0:
+        neighbors += lattice[i - 1, j]
+    if i < N - 1:
+        neighbors += lattice[i + 1, j]
+    if j > 0:
+        neighbors += lattice[i, j - 1]
+    if j < N - 1:
+        neighbors += lattice[i, j + 1]
     delta_E = 2 * spin * neighbors
 
     if np.random.rand() < glauber_acceptance(delta_E, 1/beta):
@@ -36,33 +47,44 @@ def glauber_step(lattice, beta):
 
 
 def metropolis_step(lattice, beta):
-    """Perform one step of the Metropolis algorithm."""
+    """
+    Perform one step of the Metropolis algorithm 
+    (non-periodic boundary conditions)
+    """
     N = lattice.shape[0]
     i, j = np.random.randint(0, N, size=2)
     spin = lattice[i, j]
-    neighbors = lattice[(i+1)%N, j] + lattice[(i-1)%N, j] + lattice[i, (j+1)%N] + lattice[i, (j-1)%N]
+    neighbors = 0
+    if i > 0:
+        neighbors += lattice[i - 1, j]
+    if i < N - 1:
+        neighbors += lattice[i + 1, j]
+    if j > 0:
+        neighbors += lattice[i, j - 1]
+    if j < N - 1:
+        neighbors += lattice[i, j + 1]
     delta_E = 2 * spin * neighbors
 
     if np.random.rand() < metropolis_acceptance(delta_E, 1/beta):
         lattice[i, j] *= -1
 
 
-def simulate_metropolis_interactive(lattice, beta, steps):
+def simulate_metropolis_interactive(lattice, beta, steps, snapshots_every=1):
     """Simulate the Metropolis dynamics and store snapshots."""
     snapshots = [lattice.copy()]
     for _ in range(steps):
         metropolis_step(lattice, beta)
-        if _ % 1 == 0:  # Take a snapshot every 10 steps
+        if _ % snapshots_every == 0:  # Take a snapshot every step
             snapshots.append(lattice.copy())
     return snapshots
 
 
-def simulate_glauber_interactive(lattice, beta, steps):
+def simulate_glauber_interactive(lattice, beta, steps, snapshots_every=1):
     """Simulate the Glauber dynamics and store snapshots."""
     snapshots = [lattice.copy()]
     for _ in range(steps):
         glauber_step(lattice, beta)
-        if _ % 1 == 0:  # Take a snapshot every 10 steps
+        if _ % snapshots_every == 0:  # Take a snapshot every 10 steps
             snapshots.append(lattice.copy())
     return snapshots
 
@@ -147,24 +169,20 @@ def update_bonds(lattice, beta):
     N = lattice.shape[0]
     uf = UnionFind(N * N)
     
-    # Adjust shapes to accommodate bonds that extend outside the box
-    horizontal_bonds = np.zeros((N, N + 1), dtype=bool)
-    vertical_bonds = np.zeros((N + 1, N), dtype=bool)
+    # Adjust shapes to accommodate bonds
+    horizontal_bonds = np.zeros((N, N), dtype=bool)
+    vertical_bonds = np.zeros((N, N), dtype=bool)
     
     for i in range(N):
         for j in range(N):
-            # Only create a vertical bond if the spins are the same
-            if lattice[i, j] == lattice[(i + 1) % N, j] and np.random.rand() < 1 - np.exp(-2 * beta):
-                uf.union(i * N + j, ((i + 1) % N) * N + j)
+            # Only create a vertical bond if the spins are the same and within bounds
+            if i < N - 1 and lattice[i, j] == lattice[i + 1, j] and np.random.rand() < 1 - np.exp(-2 * beta):
+                uf.union(i * N + j, (i + 1) * N + j)
                 vertical_bonds[i, j] = True
-                if i == N - 1:  # Wrap-around bond at the top edge
-                    vertical_bonds[N, j] = True
-            # Only create a horizontal bond if the spins are the same
-            if lattice[i, j] == lattice[i, (j + 1) % N] and np.random.rand() < 1 - np.exp(-2 * beta):
-                uf.union(i * N + j, i * N + (j + 1) % N)
+            # Only create a horizontal bond if the spins are the same and within bounds
+            if j < N - 1 and lattice[i, j] == lattice[i, j + 1] and np.random.rand() < 1 - np.exp(-2 * beta):
+                uf.union(i * N + j, i * N + j + 1)
                 horizontal_bonds[i, j] = True
-                if j == N - 1:  # Wrap-around bond at the right edge
-                    horizontal_bonds[i, N] = True
 
     return uf, horizontal_bonds, vertical_bonds
 
@@ -211,12 +229,12 @@ def simulate_swendsen_wang_interactive(lattice, beta, steps):
         
     return lattice_snapshots, bond_snapshots
 
-
-def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step):
+"""
+def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step, figsize=(10,10)):
     lattice = lattice_snapshots[step]
     N = lattice.shape[0]
     
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=figsize) 
     ax.set_title(f"Step {step}")
 
     bond_index = step
@@ -245,6 +263,48 @@ def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step):
     
     ax.set_xlim(-0.5, N + .5)
     ax.set_ylim(-0.5, N + .5)
+    ax.set_aspect('equal')
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.gca().invert_yaxis()  # Invert y-axis to match the imshow orientation
+    plt.show()
+"""
+
+def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step, figsize=(10,10)):
+    lattice = lattice_snapshots[step]
+    N = lattice.shape[0]
+    
+    fig, ax = plt.subplots(figsize=figsize) 
+    ax.set_title(f"Step {step}")
+
+    bond_index = step
+    horizontal_bonds, vertical_bonds = bond_snapshots[bond_index]
+    
+    alpha = 1.0 if step % 2 == 0 else 0.3
+    
+    # Plot bonds
+    segments = []
+    for i in range(N):
+        for j in range(N):
+            if j < N - 1 and horizontal_bonds[i, j]:  # Check within bounds for horizontal bonds
+                segments.append(((j, i), (j + 1, i)))
+            if i < N - 1 and vertical_bonds[i, j]:  # Check within bounds for vertical bonds
+                segments.append(((j, i), (j, i + 1)))
+    bond_lines = LineCollection(segments, colors='red', alpha=alpha, zorder=1)
+    ax.add_collection(bond_lines)
+    
+    # Plot lattice using discs on top of bonds
+    x, y = np.meshgrid(range(N), range(N))
+    x, y = x.flatten(), y.flatten()
+    spins = lattice.flatten()
+    
+    colors = np.where(spins == 1, 'black', 'white')
+    ax.scatter(x, y, c=colors, s=(400 / N), edgecolors='k', zorder=2) 
+    
+    ax.set_xlim(-0.5, N - 0.5)
+    ax.set_ylim(-0.5, N - 0.5)
     ax.set_aspect('equal')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
