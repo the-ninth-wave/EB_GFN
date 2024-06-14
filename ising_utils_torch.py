@@ -105,8 +105,9 @@ def simulate_swendsen_wang_interactive(lattice, beta, steps):
 
 ### Plotting
 
-def plot_lattice(lattice, step):
+def plot_lattice(lattice, step, figsize=(10,10)):
     """Plot the lattice for a given step."""
+    plt.figure(figsize=figsize)
     plt.imshow(lattice[step], cmap='gray_r')
     plt.title(f"Step {step}")
     plt.xticks([])
