@@ -107,10 +107,13 @@ def simulate_swendsen_wang_interactive(lattice, beta, steps):
 
 def plot_lattice(lattice, step):
     """Plot the lattice for a given step."""
-    plt.imshow(lattice[step], cmap='gray')
+    plt.imshow(lattice[step], cmap='gray_r')
     plt.title(f"Step {step}")
+    plt.xticks([])
+    plt.yticks([])
     plt.show()
 
+"""
 def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step, figsize=(10,10)):
     lattice = lattice_snapshots[step]
     N = lattice.shape[0]
@@ -151,5 +154,48 @@ def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step, figsize=(10
     ax.spines['left'].set_visible(False)
     ax.set_xticks([])
     ax.set_yticks([])
+    plt.gca().invert_yaxis()  # Invert y-axis to match the imshow orientation
+    plt.show()
+"""
+def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step, figsize=(10, 10)):
+    lattice = lattice_snapshots[step]
+    N = lattice.shape[0]
+    
+    plt.figure(figsize=figsize)
+    plt.title(f"Step {step}")
+
+    bond_index = step
+    horizontal_bonds, vertical_bonds = bond_snapshots[bond_index]
+    
+    alpha = 1.0 if step % 2 == 0 else 0.3
+    
+    # Plot bonds
+    segments = []
+    for i in range(N):
+        for j in range(N):
+            if j < N - 1 and horizontal_bonds[i, j].item():  # Check within bounds for horizontal bonds
+                segments.append(((j, i), (j + 1, i)))
+            if i < N - 1 and vertical_bonds[i, j].item():  # Check within bounds for vertical bonds
+                segments.append(((j, i), (j, i + 1)))
+    bond_lines = LineCollection(segments, colors='red', alpha=alpha, zorder=1)
+    plt.gca().add_collection(bond_lines)
+    
+    # Plot lattice using discs on top of bonds
+    x, y = np.meshgrid(range(N), range(N))
+    x, y = x.flatten(), y.flatten()
+    spins = lattice.flatten().numpy()
+    
+    colors = np.where(spins == 1, 'black', 'white')
+    plt.scatter(x, y, c=colors, s=(400 / N), edgecolors='k', zorder=2)
+    
+    plt.xlim(-0.5, N - 0.5)
+    plt.ylim(-0.5, N - 0.5)
+    plt.gca().set_aspect('equal')
+    plt.gca().spines['top'].set_visible(False)
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['bottom'].set_visible(False)
+    plt.gca().spines['left'].set_visible(False)
+    plt.gca().set_xticks([])
+    plt.gca().set_yticks([])
     plt.gca().invert_yaxis()  # Invert y-axis to match the imshow orientation
     plt.show()
