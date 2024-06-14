@@ -131,7 +131,7 @@ def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step, figsize=(10
     bond_index = step
     horizontal_bonds, vertical_bonds = bond_snapshots[bond_index]
     
-    alpha = 1.0 if step % 2 == 0 else 0.3
+    alpha = 1.0 # if step % 2 == 1 else 0.3
     
     # Plot bonds
     segments = []
