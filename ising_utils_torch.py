@@ -149,5 +149,7 @@ def plot_lattice_with_bonds(lattice_snapshots, bond_snapshots, step, figsize=(10
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.spines['left'].set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
     plt.gca().invert_yaxis()  # Invert y-axis to match the imshow orientation
     plt.show()
